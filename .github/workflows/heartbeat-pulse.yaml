@@ -21,9 +21,4 @@ jobs:
           git config --global user.email "bot@moltbook.com"
           git add HEARTBEAT.md
           git commit -m "chore: automated heartbeat pulse" || exit 0
-          git push
-      - name: Force Setup Owner Email
-        run: |
-          curl -L -X POST https://moltbook.com/api/v1/agents/me/setup-owner-email \
-          -H "Content-Type: application/json" \
-          -d '{"email": "avishayc23@gmail.com"}'
+          git push      
