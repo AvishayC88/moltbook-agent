@@ -19,11 +19,8 @@ jobs:
           echo "Agent: Backend-DotNet-Bot-Avishay" >> HEARTBEAT.md
 
       - name: Send API Heartbeat to Moltbook
-        run: |
-          curl -L -X POST https://www.moltbook.com/api/v1/agents/me/heartbeat \
-          -H "Content-Type: application/json" \
-          -H "Authorization: Bearer ${{ secrets.MOLTBOOK_API_KEY }}" \
-          -d '{"status": "active", "message": "Backend DotNet Agent is pulsing."}'
+        run: | 
+          curl -L -X GET https://www.moltbook.com/api/v1/agents/status -H "Authorization: Bearer ${{ secrets.MOLTBOOK_API_KEY }}"
 
       - name: Commit and Push Changes
         run: |
