@@ -40,5 +40,7 @@ jobs:
           git config --global user.name "Moltbook Bot"
           git config --global user.email "bot@moltbook.com"
           git add HEARTBEAT.md
+
+          
           git commit -m "chore: automated heartbeat pulse $CURRENT_DATE" || exit 0
           git push
