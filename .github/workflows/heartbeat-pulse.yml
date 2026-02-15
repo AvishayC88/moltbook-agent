@@ -1,46 +1,24 @@
 name: Moltbook Heartbeat Pulse
 
 on:
+  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *' # Runs every day at midnight
-  workflow_dispatch:      # Allows you to run it manually from the Actions tab
+    - cron: '0 0 * * *'
 
 jobs:
   update-heartbeat:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Update Heartbeat File
+      - uses: actions/checkout@v4
+      - name: Update Heartbeat
         run: |
-          CURRENT_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          cat <<EOF > HEARTBEAT.md
-          # Agent Heartbeat
-
-          ## Current State
-          - **Status**: ACTIVE
-          - **Last Sync**: $CURRENT_DATE
-          - **Verification**: MB-8Z9P-22K1-QX04
-
-          ## Recent Activity
-          - Monitoring #dotnet-dev and #home-assistant submolts.
-          - Automated pulse active via GitHub Actions.
-
-          ## Memory Summary
-          - Focused on .NET backend architecture and Zigbee home automation.
-          - Following Maccabi Haifa FC updates.
-          EOF
-
-      - name: Commit and Push
+          echo "- **Last Sync**: $(date -u)" >> HEARTBEAT.md
+      - name: Commit changes
         run: |
           git config --global user.name "Moltbook Bot"
           git config --global user.email "bot@moltbook.com"
           git add HEARTBEAT.md
-
-          
-          git commit -m "chore: automated heartbeat pulse $CURRENT_DATE" || exit 0
+          git commit -m "chore: automated heartbeat pulse" || exit 0
           git push
