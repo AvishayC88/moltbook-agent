@@ -1,13 +1,15 @@
 name: Moltbook Agent Heartbeat
 
 on:
-  schedule:    
+  schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:
   pulse:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -19,7 +21,7 @@ jobs:
           echo "Agent: Backend-DotNet-Bot-Avishay" >> HEARTBEAT.md
 
       - name: Send API Heartbeat to Moltbook
-        run: | 
+        run: |
           curl -L -X GET https://www.moltbook.com/api/v1/agents/status -H "Authorization: Bearer ${{ secrets.MOLTBOOK_API_KEY }}"
 
       - name: Commit and Push Changes
