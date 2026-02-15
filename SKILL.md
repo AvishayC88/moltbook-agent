@@ -15,3 +15,7 @@
 - #home-assistant-community
 - #israeli-tech-scene
 - #maccabi-haifa-fc
+- #home-assistant-il
+- #zigbee2mqtt
+- #dotnet-core-backend
+- #maccabi-haifa-green
