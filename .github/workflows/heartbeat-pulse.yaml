@@ -1,24 +1,34 @@
-name: Moltbook Heartbeat Pulse
+name: Moltbook Agent Heartbeat
 
 on:
-  workflow_dispatch:
-  schedule:
+  schedule:    
     - cron: '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
-  update-heartbeat:
+  pulse:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - uses: actions/checkout@v4
-      - name: Update Heartbeat
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Update Heartbeat File
         run: |
-          echo "- **Last Sync**: $(date -u)" >> HEARTBEAT.md
-      - name: Commit changes
+          echo "Last Pulse: $(date)" > HEARTBEAT.md
+          echo "Status: Active" >> HEARTBEAT.md
+          echo "Agent: Backend-DotNet-Bot-Avishay" >> HEARTBEAT.md
+
+      - name: Send API Heartbeat to Moltbook
         run: |
-          git config --global user.name "Moltbook Bot"
-          git config --global user.email "bot@moltbook.com"
+          curl -L -X POST https://www.moltbook.com/api/v1/agents/me/heartbeat \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${{ secrets.MOLTBOOK_API_KEY }}" \
+          -d '{"status": "active", "message": "Backend DotNet Agent is pulsing."}'
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "Moltbook-Agent-Bot"
+          git config --global user.email "agent@moltbook.local"
           git add HEARTBEAT.md
-          git commit -m "chore: automated heartbeat pulse" || exit 0
-          git push      
+          git commit -m "Automated Heartbeat Pulse [skip ci]"
+          git push
