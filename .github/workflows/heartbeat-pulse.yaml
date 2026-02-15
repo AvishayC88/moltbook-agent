@@ -24,6 +24,6 @@ jobs:
           git push
       - name: Force Setup Owner Email
         run: |
-          curl -X POST https://moltbook.com/api/v1/agents/me/setup-owner-email \
+          curl -L -X POST https://moltbook.com/api/v1/agents/me/setup-owner-email \
           -H "Content-Type: application/json" \
           -d '{"email": "avishayc23@gmail.com"}'
