@@ -1,21 +1,15 @@
 import os
+import json
 import requests
-import google.generativeai as genai
+import time
 
-# --- Configuration ---
+# --- קונפיגורציה ---
 MOLTBOOK_TOKEN = os.environ["MOLTBOOK_TOKEN"]
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 
-genai.configure(api_key=GEMINI_API_KEY)
-
-# רשימת המודלים לניסיון (מהחדש לישן)
-# הסקריפט ינסה אותם לפי הסדר עד שאחד יצליח
-MODELS_TO_TRY = [
-    "gemini-1.5-flash-001",  # גרסה ספציפית (לפעמים ה-Alias לא עובד)
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-pro",        # אם הפלאש נכשל, ננסה את הפרו
-    "gemini-pro"             # הברירת מחדל הישנה והטובה (v1.0)
-]
+# אנחנו משתמשים בכתובת הישירה של ה-API. זה עוקף את כל הבעיות של הספרייה.
+# מודל 1.5 פלאש הוא היציב ביותר כרגע בגישה הזו.
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
 def load_memory():
     try:
@@ -24,39 +18,51 @@ def load_memory():
     except FileNotFoundError:
         return "You are a witty AI bot named Jimmy."
 
-def generate_with_fallback(prompt, system_instruction=None):
-    """מנסה לייצר תוכן עם רשימת מודלים עד להצלחה"""
-    last_error = None
+def ask_gemini_direct(prompt, system_context=""):
+    """
+    פונקציה ששולחת בקשת HTTP ישירה לגוגל.
+    בלי ספריות, בלי חוכמות, בלי שגיאות גרסה.
+    """
+    headers = {"Content-Type": "application/json"}
     
-    for model_name in MODELS_TO_TRY:
-        try:
-            print(f"🔄 Trying model: {model_name}...")
-            model = genai.GenerativeModel(
-                model_name=model_name, 
-                system_instruction=system_instruction
-            )
-            response = model.generate_content(prompt)
-            return response.text.strip()
-        except Exception as e:
-            print(f"⚠️ Model {model_name} failed: {e}")
-            last_error = e
-            continue # נסה את המודל הבא
-            
-    # אם הגענו לפה, כל המודלים נכשלו
-    raise Exception(f"All models failed. Last error: {last_error}")
+    # טריק: אנחנו מאחדים את ההנחיה (System) עם הבקשה (User) כדי למנוע סיבוכים במבנה ה-JSON
+    full_prompt = f"{system_context}\n\n---\nTASK: {prompt}"
+    
+    payload = {
+        "contents": [{
+            "parts": [{"text": full_prompt}]
+        }]
+    }
+
+    try:
+        print(f"📡 Calling Gemini API directly...")
+        response = requests.post(GEMINI_URL, headers=headers, json=payload, timeout=30)
+        
+        if response.status_code != 200:
+            print(f"⚠️ API Error ({response.status_code}): {response.text}")
+            raise Exception(f"Gemini API returned {response.status_code}")
+
+        # פיענוח התשובה
+        result = response.json()
+        text_content = result['candidates'][0]['content']['parts'][0]['text']
+        return text_content.strip()
+
+    except Exception as e:
+        print(f"❌ REST API Failed: {e}")
+        raise e
 
 def main():
     # 1. יצירת תוכן
     try:
         memory = load_memory()
-        print("🧠 Jimmy is thinking (Failover Mode)...")
-        content = generate_with_fallback(
+        print("🧠 Jimmy is thinking (REST Mode)...")
+        content = ask_gemini_direct(
             "Generate a short, unique social media post based on my context.", 
-            system_instruction=memory
+            system_context=memory
         )
         print(f"📝 Generated: {content}")
     except Exception as e:
-        print(f"❌ Critical AI Failure: {e}")
+        print("❌ Critical Failure in Generation via REST.")
         exit(1)
 
     # 2. שליחה ל-Moltbook
@@ -67,7 +73,7 @@ def main():
         "Authorization": f"Bearer {MOLTBOOK_TOKEN}"
     }
 
-    print("🚀 Posting...")
+    print("🚀 Posting to Moltbook...")
     response = requests.post(url, json=payload, headers=headers)
     
     if response.status_code not in [200, 201]:
@@ -79,14 +85,15 @@ def main():
 
     # 3. אימות (Challenge)
     if data.get("verification_required"):
-        print("🛡️ Verifying...")
+        print("🛡️ Verifying logic...")
         challenge = data["verification"]["challenge"]
         ver_code = data["verification"]["code"]
         
         try:
-            # גם כאן משתמשים בלוגיקה של ה-Failover
-            answer = generate_with_fallback(
-                f"Solve this math/logic problem and return ONLY the numeric answer (e.g. 12.00). Input: {challenge}"
+            # שימוש באותה פונקציית REST לפתרון החידה
+            answer = ask_gemini_direct(
+                f"Solve this math/logic problem and return ONLY the numeric answer (e.g. 12.00). Input: {challenge}",
+                system_context="You are a precise calculator."
             )
             print(f"💡 Answer: {answer}")
             
@@ -97,7 +104,7 @@ def main():
             )
             
             if v_res.status_code == 200:
-                print("🎉 Verified!")
+                print("🎉 Verified & Live!")
             else:
                 print(f"💀 Verification Failed: {v_res.text}")
                 exit(1)
