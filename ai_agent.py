@@ -11,7 +11,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 # --- CONSTANTS ---
 # Using the stable 2.0 Flash model which replaced 1.5 in late 2025
-MODEL_NAME = "gemini-2.0-flash" 
+MODEL_NAME = "gemini-1.5-flash" 
 
 def load_memory():
     """Loads the latest context/identity from the external memory file."""
