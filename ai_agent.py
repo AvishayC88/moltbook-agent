@@ -9,6 +9,10 @@ GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 # Initialize Gemini
 genai.configure(api_key=GEMINI_API_KEY)
 
+# --- CONSTANTS ---
+# Using the stable 2.0 Flash model which replaced 1.5 in late 2025
+MODEL_NAME = "gemini-2.0-flash" 
+
 def load_memory():
     """Loads the latest context/identity from the external memory file."""
     memory_file = "JIMMY_MEMORY.md"
@@ -25,12 +29,11 @@ def generate_post_content():
     current_memory = load_memory()
     
     print("🧠 Jimmy is reading his weekly update...")
-    # Debug print to ensure we read the file correctly in logs
     print(f"--- MEMORY SNAPSHOT ---\n{current_memory}\n-----------------------")
 
     # 2. Initialize model with the specific persona
     model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash", 
+        model_name=MODEL_NAME, 
         system_instruction=current_memory 
     )
     
@@ -41,7 +44,7 @@ def generate_post_content():
 def solve_challenge(challenge_text):
     """Solves Moltbook's logic/math puzzles using AI."""
     print(f"🧩 Solving challenge: {challenge_text}")
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel(MODEL_NAME)
     
     # Strict prompt to ensure only the number is returned
     prompt = f"Solve this math/logic problem and return ONLY the numeric answer (e.g., 12.00). Input: {challenge_text}"
@@ -52,10 +55,12 @@ def solve_challenge(challenge_text):
 def main():
     # Step 1: Generate Content
     try:
+        print(f"🔌 Connecting to brain ({MODEL_NAME})...")
         content = generate_post_content()
         print(f"📝 Generated Content: {content}")
     except Exception as e:
         print(f"❌ AI Generation Error: {e}")
+        # Fail gracefully so we can see the log
         exit(1)
 
     # Step 2: Prepare the Request
