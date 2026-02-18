@@ -9,9 +9,8 @@ GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
 def get_available_model():
-    # ... (אותו קוד זיהוי מודל כמו מקודם - לא השתנה) ...
+    """מאתר אוטומטית את המודל הפתוח בחשבון"""
     url = f"{BASE_URL}/models?key={GEMINI_API_KEY}"
-    print(f"🔍 Querying available models...")
     try:
         response = requests.get(url)
         if response.status_code != 200: return None
@@ -23,14 +22,18 @@ def get_available_model():
     except: return None
 
 def ask_gemini_dynamic(model_name, prompt, system_context=""):
-    # ... (אותו קוד ייצור תוכן - לא השתנה) ...
+    """שולח בקשה למודל שנמצא"""
     clean_model_name = model_name.replace("models/", "")
     url = f"{BASE_URL}/models/{clean_model_name}:generateContent?key={GEMINI_API_KEY}"
+    
     headers = {"Content-Type": "application/json"}
+    # הנחיה קשוחה לפורמט התשובה
     full_prompt = f"{system_context}\n\n---\nTASK: {prompt}"
     payload = {"contents": [{"parts": [{"text": full_prompt}]}]}
+
     response = requests.post(url, headers=headers, json=payload, timeout=30)
     if response.status_code != 200: raise Exception(f"API Error {response.status_code}")
+    
     return response.json()['candidates'][0]['content']['parts'][0]['text'].strip()
 
 def load_memory():
@@ -49,22 +52,23 @@ def main():
     try:
         memory = load_memory()
         print(f"🧠 Jimmy is thinking using {working_model}...")
-        content = ask_gemini_dynamic(working_model, "Generate a short social media post.", system_context=memory)
+        content = ask_gemini_dynamic(
+            working_model, 
+            "Generate a short, unique social media post based on my context.", 
+            system_context=memory
+        )
         print(f"📝 Generated: {content}")
     except Exception as e:
         print(f"❌ Generation Failed: {e}")
         exit(1)
 
-    # 3. שליחה ל-Moltbook (עם לוגים מלאים!)
+    # 3. שליחה ל-Moltbook
     url = "https://www.moltbook.com/api/v1/posts"
-    
-    # נסה לשנות את ה-submolt למשהו אחר אם general לא עובד
     payload = {
         "content": content,
         "title": "Jimmy's Log",
         "submolt_name": "general" 
     }
-    
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {MOLTBOOK_TOKEN}"
@@ -73,45 +77,60 @@ def main():
     print("🚀 Posting to Moltbook...")
     response = requests.post(url, json=payload, headers=headers)
     
-    # הדפסת התשובה הגולמית של השרת - זה מה שיגלה לנו את האמת
-    print(f"📡 SERVER STATUS: {response.status_code}")
-    print(f"📡 SERVER RESPONSE: {response.text}")
-
     if response.status_code not in [200, 201]:
-        print("❌ Post Failed based on status code.")
+        print(f"❌ Post Failed: {response.text}")
         exit(1)
 
     data = response.json()
+    print("✅ Post Created (Status: Pending Verification).")
+
+    # 4. חילוץ וטיפול באתגר (התיקון הגדול!)
+    # אנחנו בודקים אם הסטטוס הוא PENDING ואם יש אובייקט VERIFICATION
+    post_data = data.get("post", {})
+    verification_data = post_data.get("verification", {})
     
-    # 4. אימות
-    if data.get("verification_required"):
-        print("🛡️ Verification required...")
-        challenge = data["verification"]["challenge"]
-        ver_code = data["verification"]["code"]
+    if post_data.get("verificationStatus") == "pending" and verification_data:
+        print("🛡️ Verification required! Solving challenge...")
+        
+        challenge_text = verification_data["challenge_text"]
+        verification_code = verification_data["verification_code"]
+        
+        print(f"🧩 Challenge: {challenge_text}")
         
         try:
-            answer = ask_gemini_dynamic(working_model, f"Solve math: {challenge}", system_context="Calculator")
-            print(f"💡 Calculated Answer: {answer}")
-            
-            v_res = requests.post(
-                "https://www.moltbook.com/api/v1/verify", 
-                json={"answer": answer, "code": ver_code}, 
-                headers=headers
+            # אנחנו מבקשים מג'ימני לפתור ולהחזיר רק מספר עם 2 ספרות עשרוניות
+            # הדוגמה בלוג שלך ביקשה במפורש: "with 2 decimal places, e.g., '525.00'"
+            answer = ask_gemini_dynamic(
+                working_model, 
+                f"Solve this math problem. The text is obfuscated (e.g. 'TwEnTy'). Read carefully. Return ONLY the number formatted with 2 decimal places (e.g. 44.00). Input: {challenge_text}",
+                system_context="You are a precise calculator. Output ONLY the number."
             )
             
-            print(f"📡 VERIFY STATUS: {v_res.status_code}")
-            print(f"📡 VERIFY RESPONSE: {v_res.text}")
+            # ניקוי רעשים למקרה שהמודל החזיר טקסט נוסף
+            answer = answer.replace("Answer:", "").strip()
+            print(f"💡 Calculated Answer: {answer}")
+            
+            # שליחת האימות
+            verify_url = "https://www.moltbook.com/api/v1/verify"
+            verify_payload = {
+                "answer": answer, 
+                "verification_code": verification_code # שים לב: השם כאן הוא verification_code ולא code
+            }
+            
+            v_res = requests.post(verify_url, json=verify_payload, headers=headers)
             
             if v_res.status_code == 200:
-                print("🎉 Verified & Live!")
+                print("🎉 SUCCESS! Post Verified & Live!")
+                print(f"📡 Response: {v_res.text}")
             else:
-                print(f"💀 Verification Failed.")
+                print(f"💀 Verification Failed: {v_res.text}")
                 exit(1)
+                
         except Exception as e:
              print(f"💀 Logic Core Failed: {e}")
              exit(1)
     else:
-        print("🎉 No verification needed. Post should be live.")
+        print("🎉 No verification needed (or parsing failed).")
 
 if __name__ == "__main__":
     main()
