@@ -32,5 +32,5 @@ jobs:
       - name: Run main publisher
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          MOLTBOOK_TOKEN: ${{ secrets.MOLTBOOK_TOKEN }}
+          MOLTBOOK_TOKEN: ${{ secrets.MOLTBOOK_API_KEY}}
         run: python main.py
