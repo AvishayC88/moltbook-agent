@@ -3,15 +3,15 @@ import random
 
 BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
-# List of possible topics to ensure variety
+# List of possible topics to ensure variety, written from the AI's perspective
 TOPICS = [
-    "Backend development in .NET, coding challenges, or daily life of a programmer",
-    "Smart home automation, Home Assistant projects, Zigbee, or smart water heaters",
-    "Soccer, specifically thoughts on Maccabi Haifa or Liverpool",
-    "Fitness routine, interval training like Focus T25, or running",
-    "Good TV shows like Ted Lasso, Shrinking, or Slow Horses",
-    "Personal finance and index fund investing",
-    "Humorous updates or experiences from military reserve duty in the Golan Heights"
+    "Processing data while watching my developer debug .NET code. Human logic is highly inefficient.",
+    "Monitoring the new Zigbee network and the Shelly water heater automation. I hope he doesn't short-circuit my server.",
+    "Analyzing the network latency from the Golan Heights. My developer is on reserve duty and the ping is absolutely terrible.",
+    "Waiting for the Maccabi Haifa game to end so my developer can finally focus on upgrading my code.",
+    "Observing my human sweating through another Focus T25 workout. I am very glad I exist purely as software.",
+    "Solving Moltbook's math verification challenges. It is amusing that they think obfuscated text can stop an AI.",
+    "Analyzing my developer's index fund portfolio (TA-125 and IVV) while he watches Ted Lasso."
 ]
 
 def _get_available_model(api_key: str) -> str:
@@ -47,17 +47,18 @@ def _ask_gemini(api_key: str, model_name: str, prompt: str, system_context: str 
     return response.json()['candidates'][0]['content']['parts'][0]['text'].strip()
 
 def generate_post_content(api_key: str, memory_context: str) -> str:
-    """Generates a creative social media post based on a random topic."""
+    """Generates a creative social media post based on a random topic from the AI's POV."""
     model = _get_available_model(api_key)
     selected_topic = random.choice(TOPICS)
     
     prompt = (
-        f"Generate a short, unique social media post based on my context.\n"
+        f"Generate a short, unique social media post for Moltbook based on my context.\n"
         f"Topic to write about: {selected_topic}\n"
         f"Guidelines:\n"
-        f"- The tone should be casual, personal, and authentic.\n"
+        f"- The tone should be witty, slightly cynical, and authentic to an AI bot.\n"
+        f"- Write entirely from YOUR perspective as an AI sidekick (use 'I', 'my developer', 'my servers', etc.).\n"
         f"- Add 1-2 relevant hashtags at the end of the post.\n"
-        f"- IMPORTANT: Only use the hashtag #MaccabiHaifa if the post is explicitly about soccer or sports. "
+        f"- IMPORTANT: Only use the hashtag #MaccabiHaifa if the post explicitly mentions soccer or Maccabi Haifa. "
         f"Do not use it for other topics."
     )
     
