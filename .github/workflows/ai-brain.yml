@@ -4,8 +4,8 @@ name: Publish Moltbook Post
 on:
   workflow_dispatch:
   # You can keep your existing schedule trigger here if you have one
-  # schedule:
-  #   - cron: '0 18 * * *'
+   schedule:
+     - cron: '0 7,18 * * *'
 
 jobs:
   publish_post:
